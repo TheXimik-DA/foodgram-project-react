@@ -5,9 +5,10 @@ from rest_framework.response import Response
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 
+from api.permissions import IsOwnerOrReadOnly
 from api.serializers import TagSerializer, IngredientSerializer, \
-    UserSubscribeSerializer
-from recipes.models import Tag, Ingredient, Follow
+    UserSubscribeSerializer, RecipeShowSerializer
+from recipes.models import Tag, Ingredient, Follow, Recipe
 
 User = get_user_model()
 
@@ -65,3 +66,14 @@ class CustomUserViewSet(UserViewSet):
             self.get_serializer(queryset, many=True).data,
             status=status.HTTP_200_OK
         )
+
+
+class RecipeViewSet(viewsets.ModelViewSet):
+    serializer_class = RecipeShowSerializer
+    queryset = Recipe.objects.all()
+    permission_classes = (IsOwnerOrReadOnly,)
+    ordering = ('-pub_date',)
+
+    # def get_serializer_class(self):
+    #     if self.request.method == 'GET':
+    #         return RecipeShowSerializer

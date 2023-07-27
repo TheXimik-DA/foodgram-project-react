@@ -1,10 +1,11 @@
 from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
 from djoser.serializers import UserCreateSerializer
+from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from recipes.models import Ingredient, Tag, Recipe
+from recipes.models import Ingredient, Tag, Recipe, IngredientAmount
 
 User = get_user_model()
 
@@ -112,3 +113,48 @@ class UserSubscribeSerializer(UserSerializer):
         )
         recipes = obj.recipes.all()[:recipes_limit]
         return RecipesShortSerializer(many=True).to_representation(recipes)
+
+
+class IngredientRecipeShowSerializer(serializers.ModelSerializer):
+    id = serializers.IntegerField(source='ingredient.id')
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit'
+    )
+    name = serializers.CharField(source='ingredient.name')
+
+    class Meta:
+        model = IngredientAmount
+        fields = ('id', 'name', 'measurement_unit', 'amount')
+
+
+class RecipeShowSerializer(serializers.ModelSerializer):
+    ingredients = IngredientRecipeShowSerializer(
+        many=True, source='ingredient_amount'
+    )
+    author = UserSerializer()
+    tags = TagSerializer(many=True)
+    is_favorited = serializers.SerializerMethodField()
+    is_in_shopping_cart = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Recipe
+        fields = (
+            'id',
+            'tags',
+            'author',
+            'ingredients',
+            'is_favorited',
+            'is_in_shopping_cart',
+            'name',
+            'image',
+            'text',
+            'cooking_time'
+        )
+
+    def get_is_favorited(self, obj):
+        user = self.context['request'].user
+        return user in obj.favorites.all()
+
+    def get_is_in_shopping_cart(self, obj):
+        user = self.context['request'].user
+        return user in obj.carts.all()
