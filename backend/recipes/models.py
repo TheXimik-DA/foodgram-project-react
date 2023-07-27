@@ -24,7 +24,7 @@ class Tag(models.Model):
 
 class Ingredient(models.Model):
     name = models.CharField(
-        verbose_name='Наименование',
+        verbose_name='Название',
         max_length=200
     )
     measurement_unit = models.CharField(
@@ -71,7 +71,7 @@ class Recipe(models.Model):
         verbose_name='Название'
     )
     text = models.TextField(
-        verbose_name='Рецепт'
+        verbose_name='Описание рецепта'
     )
     image = models.ImageField(
         verbose_name='Картинка',
@@ -79,7 +79,7 @@ class Recipe(models.Model):
     )
     tags = models.ManyToManyField(
         Tag,
-        verbose_name='Тег',
+        verbose_name='Теги',
         related_name='recipes'
     )
     cooking_time = models.PositiveSmallIntegerField(

@@ -77,3 +77,38 @@ class UserSerializer(serializers.ModelSerializer):
         if not request.user.is_authenticated:
             return False
         return obj.following.filter(user=request.user).exists()
+
+
+class RecipesShortSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Recipe
+        fields = ('id', 'name', 'image', 'cooking_time')
+
+
+class UserSubscribeSerializer(UserSerializer):
+    recipes_count = serializers.SerializerMethodField()
+    recipes = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = (
+            'email',
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'is_subscribed',
+            'recipes',
+            'recipes_count'
+        )
+
+    def get_recipes_count(self, obj):
+        return obj.recipes.count()
+
+    def get_recipes(self, obj):
+        request = self.context['request']
+        recipes_limit = int(
+            request.query_params.get('recipes_limit', obj.recipes.count())
+        )
+        recipes = obj.recipes.all()[:recipes_limit]
+        return RecipesShortSerializer(many=True).to_representation(recipes)
