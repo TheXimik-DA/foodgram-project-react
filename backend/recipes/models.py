@@ -21,6 +21,13 @@ class Tag(models.Model):
         max_length=200
     )
 
+    class Meta:
+        verbose_name = 'Тег'
+        verbose_name_plural = 'Теги'
+
+    def __str__(self):
+        return self.name
+
 
 class Ingredient(models.Model):
     name = models.CharField(
@@ -31,6 +38,10 @@ class Ingredient(models.Model):
         verbose_name='Единица измерения',
         max_length=200
     )
+
+    class Meta:
+        verbose_name = 'Ингредиент'
+        verbose_name_plural = 'Ингредиенты'
 
     def __str__(self):
         return self.name
@@ -53,6 +64,14 @@ class IngredientAmount(models.Model):
     amount = models.PositiveSmallIntegerField(
         verbose_name='Количество'
     )
+
+    class Meta:
+        verbose_name = 'Пропорция'
+        verbose_name_plural = 'Пропорции'
+
+    def __str__(self):
+        return (f'{self.ingredient.name} - {self.amount} '
+                f'{self.ingredient.measurement_unit}')
 
 
 class Recipe(models.Model):
@@ -104,6 +123,14 @@ class Recipe(models.Model):
         blank=True
     )
 
+    class Meta:
+        verbose_name = 'Рецепт'
+        verbose_name_plural = 'Рецепты'
+
+    def __str__(self):
+        return (f'Рецепт: {self.name}, Автор: {self.author.first_name} '
+                f'{self.author.last_name}')
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
@@ -118,3 +145,7 @@ class Follow(models.Model):
         on_delete=models.CASCADE,
         related_name='following'
     )
+
+    class Meta:
+        verbose_name = 'Подписка'
+        verbose_name_plural = 'Подписки'

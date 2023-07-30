@@ -80,7 +80,7 @@ class UserSerializer(serializers.ModelSerializer):
         return obj.following.filter(user=request.user).exists()
 
 
-class RecipesShortSerializer(serializers.ModelSerializer):
+class RecipesSmallSerializer(serializers.ModelSerializer):
     class Meta:
         model = Recipe
         fields = ('id', 'name', 'image', 'cooking_time')
@@ -112,7 +112,7 @@ class UserSubscribeSerializer(UserSerializer):
             request.query_params.get('recipes_limit', obj.recipes.count())
         )
         recipes = obj.recipes.all()[:recipes_limit]
-        return RecipesShortSerializer(many=True).to_representation(recipes)
+        return RecipesSmallSerializer(many=True).to_representation(recipes)
 
 
 class IngredientRecipeShowSerializer(serializers.ModelSerializer):

@@ -1,13 +1,17 @@
 from django.contrib.auth import get_user_model
+from django.db.models import Sum
+from django.http import FileResponse
 from djoser.views import UserViewSet
 from rest_framework.decorators import action
 from rest_framework.response import Response
 from rest_framework import viewsets, status
 from rest_framework.permissions import IsAuthenticated
 
+from api.paginators import PageNumberLimitPagination
 from api.permissions import IsOwnerOrReadOnly
 from api.serializers import TagSerializer, IngredientSerializer, \
-    UserSubscribeSerializer, RecipeShowSerializer
+    UserSubscribeSerializer, RecipeShowSerializer, RecipesSmallSerializer
+from foodgram import settings
 from recipes.models import Tag, Ingredient, Follow, Recipe
 
 User = get_user_model()
@@ -24,6 +28,7 @@ class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
 
 
 class CustomUserViewSet(UserViewSet):
+    pagination_class = PageNumberLimitPagination
 
     @action(
         methods=['post', 'delete'],
@@ -58,10 +63,16 @@ class CustomUserViewSet(UserViewSet):
     @action(
         detail=False,
         serializer_class=UserSubscribeSerializer,
-        permission_classes=(IsAuthenticated,)
+        permission_classes=(IsAuthenticated,),
+        pagination_class=PageNumberLimitPagination
     )
     def subscriptions(self, request):
         queryset = User.objects.filter(following__user=request.user)
+        page = self.paginate_queryset(queryset)
+        if page is not None:
+            return self.get_paginated_response(
+                self.get_serializer(page, many=True).data
+            )
         return Response(
             self.get_serializer(queryset, many=True).data,
             status=status.HTTP_200_OK
@@ -77,3 +88,78 @@ class RecipeViewSet(viewsets.ModelViewSet):
     # def get_serializer_class(self):
     #     if self.request.method == 'GET':
     #         return RecipeShowSerializer
+
+    @action(detail=False, permission_classes=(IsAuthenticated,))
+    def download_shopping_cart(self, request):
+        ingredients = (Ingredient.objects
+                       .filter(ingredient_amount__recipe__carts=request.user)
+                       .values('name')
+                       .annotate(total=Sum('ingredient_amount__amount'))
+                       .values('name', 'measurement_unit', 'total')
+                       )
+        text = 'Список покупок: \n \n'
+        for ingredient in ingredients:
+            amount = ingredient["total"]
+            text += (f'{ingredient["name"]} ({ingredient["measurement_unit"]})'
+                     f' - {amount}\n')
+        path = (f'{settings.MEDIA_ROOT}\\list_ingedients\\'
+                f'{request.user.username}_list_of_buy.txt')
+        with open(path, 'w') as file:
+            file.write(text)
+        return FileResponse(open(path, 'rb'), status=status.HTTP_200_OK)
+
+    @action(
+        methods=['post', 'delete'],
+        detail=True,
+        serializer_class=RecipesSmallSerializer,
+        permission_classes=(IsAuthenticated,)
+    )
+    def favorite(self, request, pk):
+        recipe = self.get_object()
+        user = request.user
+        if request.method == 'POST':
+            if user in recipe.favorites.all():
+                return Response(
+                    {'error': 'Уже в избранном'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            recipe.favorites.add(user)
+            return Response(
+                self.get_serializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
+        if user not in recipe.favorites.all():
+            return Response(
+                {'error': 'Нет в избранном'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        recipe.favorites.remove(user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
+
+    @action(
+        methods=['post', 'delete'],
+        detail=True,
+        serializer_class=RecipesSmallSerializer,
+        permission_classes=(IsAuthenticated,)
+    )
+    def shopping_cart(self, request, pk):
+        recipe = self.get_object()
+        user = request.user
+        if request.method == 'POST':
+            if user in recipe.carts.all():
+                return Response(
+                    {'error': 'Уже в корзине'},
+                    status=status.HTTP_400_BAD_REQUEST
+                )
+            recipe.carts.add(user)
+            return Response(
+                self.get_serializer(recipe).data,
+                status=status.HTTP_201_CREATED
+            )
+        if user not in recipe.carts.all():
+            return Response(
+                {'error': 'Нет в корзине'},
+                status=status.HTTP_400_BAD_REQUEST
+            )
+        recipe.carts.remove(user)
+        return Response(status=status.HTTP_204_NO_CONTENT)
