@@ -10,7 +10,7 @@ from rest_framework.permissions import IsAuthenticated
 from api.paginators import PageNumberLimitPagination
 from api.permissions import IsOwnerOrReadOnly
 from api.serializers import TagSerializer, IngredientSerializer, \
-    UserSubscribeSerializer, RecipeShowSerializer, RecipesSmallSerializer
+    UserSubscribeSerializer, RecipeShowSerializer, RecipesSmallSerializer, RecipeCreateSerializer
 from foodgram import settings
 from recipes.models import Tag, Ingredient, Follow, Recipe
 
@@ -84,10 +84,12 @@ class RecipeViewSet(viewsets.ModelViewSet):
     queryset = Recipe.objects.all()
     permission_classes = (IsOwnerOrReadOnly,)
     ordering = ('-pub_date',)
+    pagination_class = PageNumberLimitPagination
 
-    # def get_serializer_class(self):
-    #     if self.request.method == 'GET':
-    #         return RecipeShowSerializer
+    def get_serializer_class(self):
+        if self.request.method == 'POST' or self.request.method == 'PUT':
+            return RecipeCreateSerializer
+        return self.serializer_class
 
     @action(detail=False, permission_classes=(IsAuthenticated,))
     def download_shopping_cart(self, request):
@@ -163,3 +165,10 @@ class RecipeViewSet(viewsets.ModelViewSet):
             )
         recipe.carts.remove(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
+
+    def perform_create(self, serializer):
+        serializer.save(author=self.request.user)
+
+    def perform_destroy(self, instance):
+        instance.image.delete(save=False)
+        instance.delete()

@@ -115,12 +115,15 @@ class UserSubscribeSerializer(UserSerializer):
         return RecipesSmallSerializer(many=True).to_representation(recipes)
 
 
-class IngredientRecipeShowSerializer(serializers.ModelSerializer):
-    id = serializers.IntegerField(source='ingredient.id')
-    measurement_unit = serializers.CharField(
-        source='ingredient.measurement_unit'
+class IngredientRecipeSerializer(serializers.ModelSerializer):
+    id = serializers.PrimaryKeyRelatedField(
+        queryset=Ingredient.objects, source='ingredient.id'
     )
-    name = serializers.CharField(source='ingredient.name')
+    amount = serializers.IntegerField(min_value=1)
+    measurement_unit = serializers.CharField(
+        source='ingredient.measurement_unit', read_only=True
+    )
+    name = serializers.CharField(source='ingredient.name', read_only=True)
 
     class Meta:
         model = IngredientAmount
@@ -128,10 +131,10 @@ class IngredientRecipeShowSerializer(serializers.ModelSerializer):
 
 
 class RecipeShowSerializer(serializers.ModelSerializer):
-    ingredients = IngredientRecipeShowSerializer(
+    ingredients = IngredientRecipeSerializer(
         many=True, source='ingredient_amount'
     )
-    author = UserSerializer()
+    author = UserSerializer(read_only=True)
     tags = TagSerializer(many=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
@@ -158,3 +161,35 @@ class RecipeShowSerializer(serializers.ModelSerializer):
     def get_is_in_shopping_cart(self, obj):
         user = self.context['request'].user
         return user in obj.carts.all()
+
+
+class RecipeCreateSerializer(RecipeShowSerializer):
+    tags = serializers.PrimaryKeyRelatedField(
+        many=True, queryset=Tag.objects.all()
+    )
+    image = Base64ImageField()
+
+    def create(self, validated_data):
+        ingredients_amounts = validated_data.pop('ingredient_amount')
+        recipe = super().create(validated_data)
+        for ingredient_amount in ingredients_amounts:
+            ingredient = ingredient_amount['ingredient']['id']
+            amount = ingredient_amount['amount']
+            recipe.ingredients.add(
+                ingredient, through_defaults={'amount': amount}
+            )
+        return recipe
+
+    def update(self, instance, validated_data):
+        ingredients_amounts = validated_data.pop('ingredient_count')
+        if validated_data.get('image') is not None:
+            instance.image.delete(save=False)
+        recipe = super().update(instance, validated_data)
+        recipe.ingredients.clear()
+        for ingredient_amount in ingredients_amounts:
+            ingredient = ingredient_amount['ingredient']['id']
+            amount = ingredient_amount['amount']
+            recipe.ingredients.add(
+                ingredient, through_defaults={'amount': amount}
+            )
+        return recipe
