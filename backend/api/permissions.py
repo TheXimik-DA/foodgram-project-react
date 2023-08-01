@@ -12,4 +12,3 @@ class IsOwnerOrReadOnly(BasePermission):
                 or (request.user and request.user.is_authenticated
                     and (obj.author == request.user or request.user.is_staff))
                 )
-
