@@ -1,18 +1,22 @@
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
+from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
+from rest_framework import status, viewsets
 from rest_framework.decorators import action
-from rest_framework.response import Response
-from rest_framework import viewsets, status
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
+from rest_framework.response import Response
 
+from api.filters import RecipeFilter, IngredientFilter
 from api.paginators import PageNumberLimitPagination
 from api.permissions import IsOwnerOrReadOnly
-from api.serializers import TagSerializer, IngredientSerializer, \
-    UserSubscribeSerializer, RecipeShowSerializer, RecipesSmallSerializer, RecipeCreateSerializer
+from api.serializers import (IngredientSerializer, RecipeCreateSerializer,
+                             RecipeShowSerializer, RecipesSmallSerializer,
+                             TagSerializer, UserSubscribeSerializer)
 from foodgram import settings
-from recipes.models import Tag, Ingredient, Follow, Recipe
+from recipes.models import Follow, Ingredient, Recipe, Tag
 
 User = get_user_model()
 
@@ -25,6 +29,8 @@ class TagViewSet(viewsets.ReadOnlyModelViewSet):
 class IngredientViewSet(viewsets.ReadOnlyModelViewSet):
     serializer_class = IngredientSerializer
     queryset = Ingredient.objects.all()
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = IngredientFilter
 
 
 class CustomUserViewSet(UserViewSet):
@@ -83,6 +89,8 @@ class RecipeViewSet(viewsets.ModelViewSet):
     serializer_class = RecipeShowSerializer
     queryset = Recipe.objects.all()
     permission_classes = (IsOwnerOrReadOnly,)
+    filter_backends = (DjangoFilterBackend,)
+    filterset_class = RecipeFilter
     ordering = ('-pub_date',)
     pagination_class = PageNumberLimitPagination
 
