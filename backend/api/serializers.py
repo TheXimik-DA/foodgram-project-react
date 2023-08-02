@@ -169,27 +169,24 @@ class RecipeCreateSerializer(RecipeShowSerializer):
     )
     image = Base64ImageField()
 
-    def create(self, validated_data):
-        ingredients_amounts = validated_data.pop('ingredient_amount')
-        recipe = super().create(validated_data)
-        for ingredient_amount in ingredients_amounts:
-            ingredient = ingredient_amount['ingredient']['id']
-            amount = ingredient_amount['amount']
+    def add_ingredients(self, recipe, ingredients_data):
+        for ingredient_data in ingredients_data:
+            ingredient = ingredient_data['ingredient']['id']
+            amount = ingredient_data['amount']
             recipe.ingredients.add(
                 ingredient, through_defaults={'amount': amount}
             )
         return recipe
 
+    def create(self, validated_data):
+        ingredients_amounts = validated_data.pop('ingredient_amount')
+        recipe = super().create(validated_data)
+        return self.add_ingredients(recipe, ingredients_amounts)
+
     def update(self, instance, validated_data):
-        ingredients_amounts = validated_data.pop('ingredient_count')
+        ingredients_amounts = validated_data.pop('ingredient_amount')
         if validated_data.get('image') is not None:
             instance.image.delete(save=False)
         recipe = super().update(instance, validated_data)
         recipe.ingredients.clear()
-        for ingredient_amount in ingredients_amounts:
-            ingredient = ingredient_amount['ingredient']['id']
-            amount = ingredient_amount['amount']
-            recipe.ingredients.add(
-                ingredient, through_defaults={'amount': amount}
-            )
-        return recipe
+        return self.add_ingredients(recipe, ingredients_amounts)
