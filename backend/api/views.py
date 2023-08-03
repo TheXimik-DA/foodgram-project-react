@@ -5,6 +5,7 @@ from django_filters.rest_framework import DjangoFilterBackend
 from djoser.views import UserViewSet
 from rest_framework import status, viewsets
 from rest_framework.decorators import action
+from rest_framework.filters import OrderingFilter
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
@@ -43,9 +44,11 @@ class CustomUserViewSet(UserViewSet):
     )
     def subscribe(self, request, id):
         author = self.get_object()
-        exist_follow = Follow.objects.filter(
-            user=request.user, author=author
-        )
+        try:
+            exist_follow = author.following.get(user=request.user)
+        except Follow.DoesNotExist:
+            exist_follow = False
+
         if request.method == 'POST':
             if exist_follow or request.user == author:
                 return Response(
@@ -117,32 +120,28 @@ class RecipeViewSet(viewsets.ModelViewSet):
             file.write(text)
         return FileResponse(open(path, 'rb'), status=status.HTTP_200_OK)
 
-    @action(
-        methods=['post', 'delete'],
-        detail=True,
-        serializer_class=RecipesSmallSerializer,
-        permission_classes=(IsAuthenticated,)
-    )
-    def favorite(self, request, pk):
+    def post_delete_mtm_user(self, request, field):
         recipe = self.get_object()
+        recipe_field = getattr(recipe, field)
         user = request.user
+        exist = user in recipe_field.all()
         if request.method == 'POST':
-            if user in recipe.favorites.all():
+            if exist:
                 return Response(
-                    {'error': 'Уже в избранном'},
+                    {'error': 'Уже существует'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            recipe.favorites.add(user)
+            recipe_field.add(user)
             return Response(
                 self.get_serializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        if user not in recipe.favorites.all():
+        if not exist:
             return Response(
-                {'error': 'Нет в избранном'},
+                {'error': 'Не существует'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        recipe.favorites.remove(user)
+        recipe_field.remove(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
@@ -151,27 +150,17 @@ class RecipeViewSet(viewsets.ModelViewSet):
         serializer_class=RecipesSmallSerializer,
         permission_classes=(IsAuthenticated,)
     )
+    def favorite(self, request, pk):
+        return self.post_delete_mtm_user(request, 'favorites')
+
+    @action(
+        methods=['post', 'delete'],
+        detail=True,
+        serializer_class=RecipesSmallSerializer,
+        permission_classes=(IsAuthenticated,)
+    )
     def shopping_cart(self, request, pk):
-        recipe = self.get_object()
-        user = request.user
-        if request.method == 'POST':
-            if user in recipe.carts.all():
-                return Response(
-                    {'error': 'Уже в корзине'},
-                    status=status.HTTP_400_BAD_REQUEST
-                )
-            recipe.carts.add(user)
-            return Response(
-                self.get_serializer(recipe).data,
-                status=status.HTTP_201_CREATED
-            )
-        if user not in recipe.carts.all():
-            return Response(
-                {'error': 'Нет в корзине'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        recipe.carts.remove(user)
-        return Response(status=status.HTTP_204_NO_CONTENT)
+        return self.post_delete_mtm_user(request, 'carts')
 
     def perform_create(self, serializer):
         serializer.save(author=self.request.user)
