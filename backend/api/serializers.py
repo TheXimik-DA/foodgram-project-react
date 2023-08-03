@@ -7,6 +7,12 @@ from rest_framework.validators import UniqueValidator
 
 from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
 
+
+MAX_LENGTH_MESSAGE = 254
+MAX_LENGTH_NAME_AND_PASS = 150
+MIN_VALUE = 1
+MAX_VALUE = 32000
+
 User = get_user_model()
 
 
@@ -28,10 +34,10 @@ class UserCreateCustomSerializer(UserCreateSerializer):
             queryset=User.objects.all(),
             message='Email должен быть уникальным'
         )],
-        max_length=254
+        max_length=MAX_LENGTH_MESSAGE
     )
     username = serializers.CharField(
-        max_length=150,
+        max_length=MAX_LENGTH_NAME_AND_PASS,
         validators=[
             UniqueValidator(queryset=User.objects.all(),
                             message='Username должен быть уникальным'),
@@ -39,10 +45,10 @@ class UserCreateCustomSerializer(UserCreateSerializer):
                            message='Неверные символы в username')
         ]
     )
-    first_name = serializers.CharField(max_length=150)
-    last_name = serializers.CharField(max_length=150)
+    first_name = serializers.CharField(max_length=MAX_LENGTH_NAME_AND_PASS)
+    last_name = serializers.CharField(max_length=MAX_LENGTH_NAME_AND_PASS)
     password = serializers.CharField(
-        max_length=150,
+        max_length=MAX_LENGTH_NAME_AND_PASS,
         style={'input_type': 'password'},
         write_only=True
     )
@@ -119,7 +125,10 @@ class IngredientRecipeSerializer(serializers.ModelSerializer):
     id = serializers.PrimaryKeyRelatedField(
         queryset=Ingredient.objects, source='ingredient.id'
     )
-    amount = serializers.IntegerField(min_value=1)
+    amount = serializers.IntegerField(
+        min_value=MIN_VALUE,
+        max_value=MAX_VALUE,
+    )
     measurement_unit = serializers.CharField(
         source='ingredient.measurement_unit', read_only=True
     )
@@ -138,6 +147,10 @@ class RecipeShowSerializer(serializers.ModelSerializer):
     tags = TagSerializer(many=True)
     is_favorited = serializers.SerializerMethodField()
     is_in_shopping_cart = serializers.SerializerMethodField()
+    cooking_time = serializers.IntegerField(
+        min_value=MIN_VALUE,
+        max_value=MAX_VALUE,
+    )
 
     class Meta:
         model = Recipe

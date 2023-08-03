@@ -6,6 +6,7 @@ from .models import Follow, Ingredient, IngredientAmount, Recipe, Tag
 class IngredientCountInline(admin.TabularInline):
     model = IngredientAmount
     extra = 1
+    min_num = 1
 
 
 @admin.register(Follow)
