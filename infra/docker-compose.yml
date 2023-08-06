@@ -19,7 +19,7 @@ services:
       - ./docker.env
 
   frontend:
-    image: theximik/foodgram
+    image: theximik/foodgramfront
     volumes:
       - ../frontend/:/app/result_build/
 
