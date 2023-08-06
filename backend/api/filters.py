@@ -1,9 +1,11 @@
 from django_filters import CharFilter
-from django_filters.rest_framework import (BooleanFilter, FilterSet,
-                                           ModelMultipleChoiceFilter,
-                                           NumberFilter)
-
-from recipes.models import Recipe, Tag, Ingredient
+from django_filters.rest_framework import (
+    BooleanFilter,
+    FilterSet,
+    ModelMultipleChoiceFilter,
+    NumberFilter,
+)
+from recipes.models import Ingredient, Recipe, Tag
 
 
 class RecipeFilter(FilterSet):

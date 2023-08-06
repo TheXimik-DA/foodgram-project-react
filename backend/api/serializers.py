@@ -2,11 +2,9 @@ from django.contrib.auth import get_user_model
 from django.core.validators import RegexValidator
 from djoser.serializers import UserCreateSerializer
 from drf_extra_fields.fields import Base64ImageField
+from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
-
-from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
-
 
 MAX_LENGTH_MESSAGE = 254
 MAX_LENGTH_NAME_AND_PASS = 150
