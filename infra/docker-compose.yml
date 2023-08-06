@@ -8,7 +8,7 @@ services:
       - ./docker.env
 
   web:
-    image: theximik/foodgram
+    image: theximik/foodgram:latest
     restart: always
     volumes:
       - static_value:/app/static/
@@ -19,7 +19,7 @@ services:
       - ./docker.env
 
   frontend:
-    image: theximik/foodgramfront
+    image: theximik/foodgramfront:latest
     volumes:
       - ../frontend/:/app/result_build/
 
