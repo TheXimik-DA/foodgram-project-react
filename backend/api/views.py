@@ -100,7 +100,7 @@ class RecipeViewSet(viewsets.ModelViewSet):
     pagination_class = PageNumberLimitPagination
 
     def get_serializer_class(self):
-        if self.request.method == 'POST' or self.request.method == 'PUT':
+        if self.request.method == 'POST' or self.request.method == 'PATCH':
             return RecipeCreateSerializer
         return self.serializer_class
 
