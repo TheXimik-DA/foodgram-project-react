@@ -182,12 +182,14 @@ class RecipeCreateSerializer(RecipeShowSerializer):
     image = Base64ImageField()
 
     def add_ingredients(self, recipe, ingredients_data):
+        ingredients_list = []
         for ingredient_data in ingredients_data:
             ingredient = ingredient_data['ingredient']['id']
             amount = ingredient_data['amount']
-            recipe.ingredients.add(
-                ingredient, through_defaults={'amount': amount}
-            )
+            ingredients_list.append(IngredientAmount(
+                ingredient=ingredient, amount=amount, recipe=recipe
+            ))
+        IngredientAmount.objects.bulk_create(ingredients_list)
         return recipe
 
     def create(self, validated_data):
