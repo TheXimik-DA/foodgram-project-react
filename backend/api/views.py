@@ -1,4 +1,5 @@
 
+from django.shortcuts import get_object_or_404
 from django.contrib.auth import get_user_model
 from django.db.models import Sum
 from django.http import FileResponse
@@ -49,28 +50,20 @@ class CustomUserViewSet(UserViewSet):
     )
     def subscribe(self, request, id):
         author = self.get_object()
-        try:
-            exist_follow = author.following.get(user=request.user)
-        except Follow.DoesNotExist:
-            exist_follow = False
-
         if request.method == 'POST':
-            if exist_follow or request.user == author:
+            serializer = self.get_serializer(author)
+            if not serializer.check_can_subscribe(request.user, author):
                 return Response(
                     {'errors': 'Ошибка подписки.'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
             Follow.objects.create(user=request.user, author=author)
             return Response(
-                self.get_serializer(author).data,
+                serializer.data,
                 status=status.HTTP_201_CREATED
             )
-        if not exist_follow:
-            return Response(
-                {'errors': 'Вы не подписаны на этого автора'},
-                status=status.HTTP_400_BAD_REQUEST
-            )
-        exist_follow.delete()
+        follow = get_object_or_404(Follow, user=request.user, author=author)
+        follow.delete()
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(

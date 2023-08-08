@@ -5,7 +5,7 @@ from drf_extra_fields.fields import Base64ImageField
 from rest_framework import serializers
 from rest_framework.validators import UniqueValidator
 
-from recipes.models import Ingredient, IngredientAmount, Recipe, Tag
+from recipes.models import Ingredient, IngredientAmount, Follow, Recipe, Tag
 
 MAX_LENGTH_MESSAGE = 254
 MAX_LENGTH_NAME_AND_PASS = 150
@@ -107,6 +107,16 @@ class UserSubscribeSerializer(UserSerializer):
             'recipes',
             'recipes_count'
         )
+
+    @staticmethod
+    def check_can_subscribe(user, author):
+        if user is author:
+            return False
+        try:
+            author.following.get(user=user)
+            return False
+        except Follow.DoesNotExist:
+            return True
 
     def get_recipes_count(self, obj):
         return obj.recipes.count()
