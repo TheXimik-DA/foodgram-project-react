@@ -120,26 +120,22 @@ class RecipeViewSet(viewsets.ModelViewSet):
 
     def post_delete_mtm_user(self, request, field):
         recipe = self.get_object()
-        recipe_field = getattr(recipe, field)
         user = request.user
-        exist = user in recipe_field.all()
         if request.method == 'POST':
-            if exist:
+            if not recipe.add_to_m2m_user(field, user):
                 return Response(
                     {'error': 'Уже существует'},
                     status=status.HTTP_400_BAD_REQUEST
                 )
-            recipe_field.add(user)
             return Response(
                 self.get_serializer(recipe).data,
                 status=status.HTTP_201_CREATED
             )
-        if not exist:
+        if not recipe.del_from_m2m_user(field, user):
             return Response(
                 {'error': 'Не существует'},
                 status=status.HTTP_400_BAD_REQUEST
             )
-        recipe_field.remove(user)
         return Response(status=status.HTTP_204_NO_CONTENT)
 
     @action(
