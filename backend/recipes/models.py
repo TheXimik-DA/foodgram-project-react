@@ -153,6 +153,20 @@ class Recipe(models.Model):
         return (f'Рецепт: {self.name}, Автор: {self.author.first_name} '
                 f'{self.author.last_name}')
 
+    def add_to_m2m_user(self, field_name, user):
+        field = getattr(self, field_name)
+        if user in field.all():
+            return False
+        field.add(user)
+        return True
+
+    def del_from_m2m_user(self, field_name, user):
+        field = getattr(self, field_name)
+        if user in field.all():
+            field.remove(user)
+            return True
+        return False
+
 
 class Follow(models.Model):
     user = models.ForeignKey(
@@ -172,17 +186,3 @@ class Follow(models.Model):
         ordering = ['-author_id']
         verbose_name = 'Подписка'
         verbose_name_plural = 'Подписки'
-
-    def add_to_m2m_user(self, field_name, user):
-        field = getattr(self, field_name)
-        if user in field.all():
-            return False
-        field.add(user)
-        return True
-
-    def del_from_m2m_user(self, field_name, user):
-        field = getattr(self, field_name)
-        if user in field.all():
-            field.remove(user)
-            return True
-        return False
